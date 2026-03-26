@@ -1,40 +1,40 @@
 # TlyCode
 
-TlyCode je serverless webová aplikace postavená na platformě TypeForge. Kompiluje TypeScript do Lua pomocí TypeScript-to-Lua (TSTL). UI rendering zajišťují React komponenty embedded v HTML stránkách generovaných serverem.
+TlyCode is a serverless web application built on the TypeForge platform. It compiles TypeScript to Lua using TypeScript-to-Lua (TSTL). UI rendering is handled by React components embedded in server-generated HTML pages.
 
-Aktuálně aplikace obsahuje jednu Hello World stránku na `/`.
+Currently the application serves a single Hello World page at `/`.
 
-## Funkce
+## Features
 
-- **TypeScript → Lua kompilace** — Pište TypeScript, nasaďte jako Lua
-- **Hybrid React architektura** — Server generuje HTML s React komponentami
-- **Typově bezpečný routing** — Union typy pro compile-time validaci cest
-- **Decorator-based validace** — Validace a transformace vstupních dat
-- **Vestavěné Runtime API** — File I/O, HTTP klient, PostgreSQL, Redis, e-mail, PDF, obrázky
-- **Dark/Light theme** — Podpora přepínání témat
+- **TypeScript → Lua compilation** — Write TypeScript, deploy as Lua
+- **Hybrid React architecture** — Server generates HTML with React components
+- **Type-safe routing** — Union types for compile-time path validation
+- **Decorator-based validation** — Input data validation and transformation
+- **Built-in Runtime API** — File I/O, HTTP client, PostgreSQL, Redis, email, PDF, images
+- **Dark/Light theme** — Theme toggle support
 
-## Rychlý start
+## Quick Start
 
-### Instalace
+### Installation
 
 ```bash
 npm install
 cd react-app && npm install
 ```
 
-### Vývoj
+### Development
 
 ```bash
-npm run dev    # Watch mode — automatická rekompilace při změnách
-npm run build  # Jednorázová kompilace TSTL
+npm run dev    # Watch mode — auto-recompiles on changes
+npm run build  # One-time TSTL compilation
 ```
 
 ### Full rebuild (React + TSTL)
 
 ```bash
 cd react-app && npm run build && cd ..   # 1. Build React
-# 2. Run embed script (viz CLAUDE.md)    # 2. Embed do react-bundle-content.ts
-npm run build                             # 3. TSTL kompilace do Lua
+# 2. Run embed script (see CLAUDE.md)    # 2. Embed into react-bundle-content.ts
+npm run build                             # 3. TSTL compile to Lua
 ```
 
 ### Deployment
@@ -43,44 +43,44 @@ npm run build                             # 3. TSTL kompilace do Lua
 HOSTING_API_SECRET=<secret> ./scripts/deploy.sh
 ```
 
-## Struktura projektu
+## Project Structure
 
 ```
-src/                               # TSTL server-side kód (kompiluje se do Lua)
-├── main.ts                        # Vstupní bod — config(), init(), main()
-├── global.d.ts                    # Runtime API deklarace (@noSelf)
-├── global.types.ts                # Globální typy (Request, Response, Config)
-├── config.ts                      # Konfigurace aplikace
-├── utils.ts                       # Utility funkce
-├── validator.ts                   # Validační systém
-├── template.ts                    # HTML šablona
-├── react.ts                       # React page template generátor
+src/                               # TSTL server-side code (compiles to Lua)
+├── main.ts                        # Entry point — config(), init(), main()
+├── global.d.ts                    # Runtime API declarations (@noSelf)
+├── global.types.ts                # Global types (Request, Response, Config)
+├── config.ts                      # App configuration
+├── utils.ts                       # Utility functions
+├── validator.ts                   # Validation system
+├── template.ts                    # HTML template
+├── react.ts                       # React page template generator
 ├── react-bundle-content.ts        # Embedded React bundle (auto-generated)
 │
 └── modules/
-    ├── router.ts                  # Definice rout
-    ├── router.types.ts            # Typy cest
-    ├── types.ts                   # RouterPaths typ
+    ├── router.ts                  # Route definitions
+    ├── router.types.ts            # Route path types
+    ├── types.ts                   # RouterPaths type
     └── app/
         ├── index.ts               # Barrel export
-        └── hello/                 # Hello World modul
+        └── hello/                 # Hello World module
             ├── index.ts
             └── hello.handlers.ts
 
 react-app/                         # React frontend (Vite build)
 └── src/
     ├── main.tsx                   # Entry point — window.__REACT_RENDER__
-    ├── registry.ts                # Mapování komponent
+    ├── registry.ts                # Component mapping
     ├── context/                   # ThemeContext, LanguageContext
     ├── pages/public/
-    │   └── HelloWorldPage.tsx     # Hello World stránka
+    │   └── HelloWorldPage.tsx     # Hello World page
     └── styles/
-        └── admin.css              # Styly
+        └── admin.css              # Styles
 ```
 
-## Příklady
+## Examples
 
-### Route handler (React stránka)
+### Route handler (React page)
 
 ```typescript
 export function renderHello(request: Request, response: Response): Response {
@@ -89,7 +89,7 @@ export function renderHello(request: Request, response: Response): Response {
 }
 ```
 
-### Handler s daty
+### Handler with data
 
 ```typescript
 export function renderItems(request: Request, response: Response): Response {
@@ -101,7 +101,7 @@ export function renderItems(request: Request, response: Response): Response {
 }
 ```
 
-### Databázový dotaz
+### Database query
 
 ```typescript
 const items = sqlQuery<Item>(
@@ -110,7 +110,7 @@ const items = sqlQuery<Item>(
 );
 ```
 
-### Validace
+### Validation
 
 ```typescript
 class ItemForm {
@@ -122,26 +122,26 @@ class ItemForm {
 const validated = transformValidate(ItemForm, formData);
 ```
 
-## Dokumentace
+## Documentation
 
-Podrobná dokumentace je ve složce [docs](./docs/):
+Detailed documentation is available in the [docs](./docs/) directory:
 
-- [Architektura](./docs/architecture.md) — Struktura projektu a kompilační pipeline
-- [Routing](./docs/routing.md) — Typově bezpečný routovací systém
-- [React integrace](./docs/react.md) — Rendering React komponent
-- [Runtime API](./docs/runtime-api.md) — Reference všech runtime funkcí
-- [TSTL Gotchas](./docs/tstl-gotchas.md) — Kritické rozdíly Lua/JS
-- [Validace](./docs/validation.md) — Decorator-based validační systém
-- [Návrhové vzory](./docs/patterns.md) — Best practices a příklady
+- [Architecture](./docs/architecture.md) — Project structure and compilation pipeline
+- [Routing](./docs/routing.md) — Type-safe routing system
+- [React Integration](./docs/react.md) — React component rendering
+- [Runtime API](./docs/runtime-api.md) — Complete runtime function reference
+- [TSTL Gotchas](./docs/tstl-gotchas.md) — Critical Lua/JS differences
+- [Validation](./docs/validation.md) — Decorator-based validation system
+- [Patterns](./docs/patterns.md) — Best practices and examples
 
-## Klíčové konvence
+## Key Conventions
 
-1. **`@noSelf` anotace** — Povinná na všech exportovaných funkcích volaných z runtime
-2. **Route handlery** — Přijímají `(request, response)` a vracejí `response`
-3. **React rendering** — Handlery volají `getReactPageTemplate()` s názvem komponenty a props
-4. **Nové routy** — Přidat typ do `router.types.ts`, handler do modulu, registrovat v `router.ts`
-5. **Globální typy** — `Request`, `Response`, `Config` jsou dostupné bez importu
+1. **`@noSelf` annotation** — Required on all exported functions called by the runtime
+2. **Route handlers** — Accept `(request, response)` and return `response`
+3. **React rendering** — Handlers call `getReactPageTemplate()` with component name and props
+4. **New routes** — Add type to `router.types.ts`, create handler in module, register in `router.ts`
+5. **Global types** — `Request`, `Response`, `Config` are available without imports
 
-## Licence
+## License
 
-Proprietární
+Proprietary
