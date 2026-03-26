@@ -1,6 +1,6 @@
-# TypeForge Documentation
+# TlyCode Documentation
 
-TypeForge is a serverless web framework that compiles TypeScript to Lua using TSTL, with a React-based frontend for UI rendering.
+TlyCode is a serverless web framework built on the TypeForge platform. It compiles TypeScript to Lua using TSTL. UI rendering is handled by React components embedded in server-generated HTML pages.
 
 Currently the application serves a single Hello World page at `/`.
 
