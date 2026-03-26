@@ -8,3 +8,6 @@ deploy-local.sh
 screenshot*.png
 *.png
 .claude/
+.env
+tlycode-settings.json
+.idea/
