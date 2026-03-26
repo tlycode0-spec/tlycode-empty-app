@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Read and follow instructions from: `.docs/instructions.md`
+Read and follow instructions from: `docs/instructions.md`
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
