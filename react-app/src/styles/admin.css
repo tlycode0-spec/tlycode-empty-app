@@ -1,0 +1,14 @@
+/* ==========================================================================
+   Minimal base styles — MUI handles components, this is for extras only
+   ========================================================================== */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+}

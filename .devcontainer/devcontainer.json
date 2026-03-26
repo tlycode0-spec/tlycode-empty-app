@@ -1,0 +1,29 @@
+{
+  "name": "TypeForge Dev",
+  "image": "filipeus513/typeforge-codespace:latest",
+  "onCreateCommand": ".devcontainer/setup.sh",
+  "postStartCommand": ".devcontainer/post-start.sh",
+  "postAttachCommand": ".devcontainer/post-attach.sh",
+  "secrets": {
+    "TYPEFORGE_MCP_API_TOKEN": {
+      "description": "TypeForge MCP API token (format: tfk_...). Automatically managed by TypeForge hosting."
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        
+      }
+    }
+  },
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "App",
+      "visibility": "public"
+    }
+  }
+}
