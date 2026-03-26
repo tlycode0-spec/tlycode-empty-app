@@ -11,6 +11,8 @@ TlyCode is a serverless web framework built on the TypeForge platform. It compil
 
 **Architecture: Hybrid React** — The server (TSTL/Lua) handles routing and data. UI rendering is done by React components. The server serializes data as JSON props and generates an HTML page that loads React from CDN + an embedded app bundle.
 
+This repository is the **template for new TlyCode projects** (`git@github.com:tlycode0-spec/tlycode-empty-app.git`).
+
 Currently the application serves a single Hello World page at `/`.
 
 
