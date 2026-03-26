@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TlyCode is a serverless web application built on the TypeForge platform. It compiles TypeScript to Lua using TypeScript-to-Lua (TSTL). The compiled Lua bundle runs on a Lua JIT hosting runtime with built-in APIs for HTTP, database, file I/O, crypto, and more.
+TlyCode is a serverless web framework built on the TypeForge platform. It compiles TypeScript to Lua using TypeScript-to-Lua (TSTL). The compiled Lua bundle runs on a Lua JIT hosting runtime with built-in APIs for HTTP, database, file I/O, crypto, and more.
 
 **Architecture: Hybrid React** — The server (TSTL/Lua) handles routing and data. UI rendering is done by React components. The server serializes data as JSON props and generates an HTML page that loads React from CDN + an embedded app bundle.
 

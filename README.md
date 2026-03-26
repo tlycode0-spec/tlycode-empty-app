@@ -1,6 +1,6 @@
 # TlyCode
 
-TlyCode is a serverless web application built on the TypeForge platform. It compiles TypeScript to Lua using TypeScript-to-Lua (TSTL). UI rendering is handled by React components embedded in server-generated HTML pages.
+TlyCode is a serverless web framework built on the TypeForge platform. It compiles TypeScript to Lua using TypeScript-to-Lua (TSTL). UI rendering is handled by React components embedded in server-generated HTML pages.
 
 Currently the application serves a single Hello World page at `/`.
 
