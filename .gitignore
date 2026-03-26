@@ -10,3 +10,4 @@ deploy-local.sh
 .env
 tlycode-settings.json
 .idea/
+.screenshots/
