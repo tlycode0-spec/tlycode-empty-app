@@ -94,3 +94,103 @@ Use the TlyCode MCP server tools (prefixed with `mcp__tlycode__`) for all platfo
 Use the TlyCode MCP server for direct database access (useful for debugging and data inspection):
 
 - `mcp__tlycode__run_sql_query` (project_id, environment_id, query) — run SQL queries
+
+### Cloud Storage (Assets)
+
+Cloud Storage is used for uploading static assets (images, files) and getting their public URLs for use in code.
+
+#### MCP Tools for Cloud Storage Management
+
+Use these tools (prefixed with `mcp__tlycode__`) to manage storage from the development environment:
+
+- `mcp__tlycode__get_storage` (project_id, environment_id) — get bucket details for an environment
+- `mcp__tlycode__list_all_storage` (project_id) — list all storage buckets across environments
+- `mcp__tlycode__storage_upload_file` (project_id, environment_id, path, content_base64, content_type?) — upload a file (base64-encoded content)
+- `mcp__tlycode__storage_download_file` (project_id, environment_id, path) — download a file (returns base64)
+- `mcp__tlycode__storage_list_files` (project_id, environment_id, prefix?, max_results?) — list files in bucket, supports prefix filter and pagination
+- `mcp__tlycode__storage_delete_file` (project_id, environment_id, path) — delete a file
+- `mcp__tlycode__detach_storage` (project_id, environment_id) — detach bucket from environment (does not delete cloud resource)
+- `mcp__tlycode__delete_cloud_storage` (bucket_name, confirm) — permanently delete a bucket and all its objects
+
+#### Uploading Assets via MCP
+
+To upload an asset (e.g., an image) via MCP tools:
+
+1. Base64-encode the file content
+2. Upload with path and content type:
+   ```
+   mcp__tlycode__storage_upload_file(project_id, environment_id, path="images/logo.png", content_base64="...", content_type="image/png")
+   ```
+3. The file is accessible at the bucket's public URL
+
+#### Runtime Storage Functions (in TSTL/Lua code)
+
+These global functions are available in server-side code for working with Cloud Storage at runtime:
+
+```typescript
+// Upload a file (string content)
+storageUpload(path: string, content: string, contentType?: string): string;
+
+// Upload binary data
+storageUploadBytes(path: string, bytes: number[], contentType?: string): string;
+
+// Download a file
+storageDownload(path: string): string;
+
+// Delete a file
+storageDelete(path: string): boolean;
+
+// Get public URL for a file
+storageGetUrl(path: string): string;
+
+// Get a signed (time-limited) URL
+storageGetSignedUrl(path: string, expiresInSeconds?: number): string;
+
+// List files by prefix
+storageList(prefix?: string): string[];
+
+// Check if a file exists
+storageExists(path: string): boolean;
+```
+
+#### Asset URL Resolution
+
+The base URL for assets is determined from app configuration:
+
+- **`CDN_URL`** — used if available (preferred, serves assets via CDN)
+- **`STORAGE_URL`** — fallback when CDN is not configured (direct Cloud Storage URL)
+
+```typescript
+const config = getConfig();
+const baseUrl = config.CDN_URL || config.STORAGE_URL;
+const assetUrl = `${baseUrl}/images/logo.png`;
+```
+
+#### Common Patterns
+
+**Upload user file and get its public URL:**
+```typescript
+export function handleUpload(request: Request, response: Response): Response {
+    const file = request.files[0];
+    const path = `uploads/${uniqueKey()}_${file.filename}`;
+    storageUpload(path, file.content, file.contentType);
+    const config = getConfig();
+    const baseUrl = config.CDN_URL || config.STORAGE_URL;
+    const url = `${baseUrl}/${path}`;
+    // Save url to database, use in templates, etc.
+    return response;
+}
+```
+
+**Get public URL for an asset in a template:**
+```typescript
+const config = getConfig();
+const baseUrl = config.CDN_URL || config.STORAGE_URL;
+const logoUrl = `${baseUrl}/images/logo.png`;
+response.content = getReactPageTemplate('Home', "HomePage", { logoUrl });
+```
+
+**Get a temporary signed URL (e.g., for private files):**
+```typescript
+const downloadUrl = storageGetSignedUrl("documents/report.pdf", 3600); // 1 hour
+```

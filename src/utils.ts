@@ -96,6 +96,14 @@ export function setFlash(type: FlashMessage['type'], message: string, request: R
     return setSession(session, response);
 }
 
+// ---- Asset URL ----
+
+export function getAssetUrl(path: string): string {
+    const config = getConfig();
+    const baseUrl = config["CDN_URL"] || config["STORAGE_URL"] || '';
+    return `${baseUrl}/${path}`;
+}
+
 // ---- Form Data ----
 
 export function getPayloudData<T = Record<string, string>>(request: Request): T {
