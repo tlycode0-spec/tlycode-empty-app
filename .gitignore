@@ -11,3 +11,4 @@ deploy-local.sh
 tlycode-settings.json
 .idea/
 .screenshots/
+src/react-bundle-content.ts

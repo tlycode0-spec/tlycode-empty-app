@@ -1,4 +1,4 @@
-import { renderHello } from "./app";
+import { renderLanding } from "./app";
 import { RouterPaths } from "./types";
 
 // Router
@@ -6,7 +6,7 @@ export function getRouter(): { path: RouterPaths; route: RouteFunction, type: "a
     return [
         {
             path: "/",
-            route: renderHello,
+            route: renderLanding,
             type: "render"
         },
     ];

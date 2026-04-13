@@ -19,10 +19,10 @@
       }
     }
   },
-  "forwardPorts": [8080],
+  "forwardPorts": [3005],
   "portsAttributes": {
-    "8080": {
-      "label": "App",
+    "3005": {
+      "label": "Tlycode",
       "visibility": "public"
     }
   }

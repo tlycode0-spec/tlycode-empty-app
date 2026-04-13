@@ -28,18 +28,8 @@ npm run dev          # Watch mode — recompiles on file changes
 cd react-app && npm install   # Install React dependencies
 cd react-app && npm run build # Build React bundle (output: react-app/dist/)
 
-# After React build — embed into TSTL bundle
-node -e "
-const fs = require('fs');
-const dir = 'react-app/dist';
-const files = fs.readdirSync(dir);
-const jsFile = files.find(f => f.endsWith('.js'));
-const cssFile = files.find(f => f.endsWith('.css'));
-const js = fs.readFileSync(dir+'/'+jsFile,'utf8');
-const css = cssFile ? fs.readFileSync(dir+'/'+cssFile,'utf8') : '';
-const out = 'export const REACT_JS = \`'+js.replace(/\\\`/g,'\\\\'+'\`').replace(/\\\$/g,'\\\\$')+'\`;\\nexport const REACT_CSS = \`'+css.replace(/\\\`/g,'\\\\'+'\`').replace(/\\\$/g,'\\\\$')+'\`;\\n';
-fs.writeFileSync('src/react-bundle-content.ts', out);
-"
+# After React build — embed into TSTL bundle and write hash into react.ts
+node scripts/embed-react.js
 ```
 
 There is no test framework or linter configured.
@@ -77,7 +67,7 @@ src/                               # TSTL server-side code (compiles to Lua)
 ├── validator.ts                   # Decorator-based validation
 ├── template.ts                    # HTML template wrapper + theme detection
 ├── react.ts                       # React page template generator
-├── react-bundle-content.ts        # Embedded React bundle (auto-generated, do not edit)
+├── react-bundle-content.ts        # Embedded React bundle (auto-generated, gitignored)
 │
 └── modules/
     ├── router.ts                  # Route definitions

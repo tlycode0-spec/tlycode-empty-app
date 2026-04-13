@@ -78,6 +78,10 @@ interface Config {
     migrations?: Migration[]
     seeds?: Seed[],
     resend: ResendConfig
+    cdnUrl?: string
+    storageUrl?: string
+    projectName?: string
+    environment?: string
 }
 
 interface Migration {

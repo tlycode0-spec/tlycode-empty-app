@@ -5,3 +5,6 @@
 #  echo "Starting tlycode-agent-server..."
 #  /workspace/tlycode-agent-server &
 #fi
+
+# Start tlycode-agent server
+/workspaces/tlycode-agent-server-linux-amd64 --port 3005

@@ -1,6 +1,8 @@
 import { getReactPageTemplate } from "../../../react";
 
-export function renderHello(request: Request, response: Response): Response {
-    response.content = getReactPageTemplate('Hello World', "HelloWorld", {});
+export function renderLanding(request: Request, response: Response): Response {
+    const config = getConfig();
+
+    response.content = getReactPageTemplate('Hello World', "Hello", {});
     return response;
 }

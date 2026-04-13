@@ -12,4 +12,5 @@ Currently the application serves a single Hello World page at `/`.
 - [Runtime API](runtime-api.md) — Globally available Lua runtime functions
 - [TSTL Gotchas](tstl-gotchas.md) — Critical Lua/JS differences
 - [Validation](validation.md) — Decorator-based form validation
+- [Cloud Storage](cloud-storage.md) — Uploading assets and using CDN URLs
 - [Patterns](patterns.md) — Common code patterns for handlers, repositories, and components

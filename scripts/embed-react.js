@@ -24,4 +24,13 @@ function escapeTemplateLiteral(str) {
 
 const out = `export const REACT_JS = \`${escapeTemplateLiteral(js)}\`;\nexport const REACT_CSS = \`${escapeTemplateLiteral(css)}\`;\n`;
 fs.writeFileSync(outFile, out);
-console.log(`Embedded React bundle into ${outFile}`);
+
+// Write hash into react.ts
+const crypto = require('crypto');
+const hash = crypto.createHash('md5').update(js).digest('hex');
+const reactFile = path.join(projectRoot, 'src', 'react.ts');
+let react = fs.readFileSync(reactFile, 'utf8');
+react = react.replace(/const bundleHash = ".*?"/, `const bundleHash = "${hash}"`);
+fs.writeFileSync(reactFile, react);
+
+console.log(`Embedded React bundle, hash: ${hash}`);

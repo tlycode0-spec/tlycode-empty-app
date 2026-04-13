@@ -1,4 +1,5 @@
 import { REACT_JS, REACT_CSS } from "./react-bundle-content";
+import { getAssetUrl } from "./utils";
 
 // =============================================================================
 // Types
@@ -31,7 +32,8 @@ interface ReactPageOptions extends ReactComponentOptions {
 // GCS Storage for React bundle
 // =============================================================================
 
-const bundleHash = md5(REACT_JS);
+// Bundle hash is replaced by the embed script at build time
+const bundleHash = "ce5a9ecc1290f2ce60056e044c65c318";
 const bundleStoragePath = "react-assets/react-bundle-" + bundleHash + ".js";
 const cssStoragePath = "react-assets/react-bundle-" + bundleHash + ".css";
 
@@ -55,8 +57,8 @@ function ensureBundleUploaded(): void {
         storageUpload(cssStoragePath, cssContent, "text/css");
     }
 
-    cachedBundleUrl = storageGetUrl(bundleStoragePath);
-    cachedCssUrl = storageGetUrl(cssStoragePath);
+    cachedBundleUrl = getAssetUrl(bundleStoragePath);
+    cachedCssUrl = getAssetUrl(cssStoragePath);
     bundleUploaded = true;
 }
 
