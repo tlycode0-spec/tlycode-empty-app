@@ -47,6 +47,50 @@ npm run build                             # 3. TSTL compile to Lua
 HOSTING_API_SECRET=<secret> ./scripts/deploy.sh
 ```
 
+### Static assets (images, fonts, videos, …)
+
+Assets are stored under `{project}/{env}/files/` in Cloud Storage and referenced
+via the Lua `getAssetUrl(path)` helper (uses CDN when configured, otherwise GCS).
+
+There are four ways to upload local files:
+
+1. **`scripts/assets.sh`** — single-file CLI (recommended for ad-hoc uploads):
+   ```bash
+   HOSTING_API_SECRET=<secret> HOSTING_ENV=test ./scripts/assets.sh upload ./logo.png
+   ./scripts/assets.sh upload ./hero.jpg images/hero.jpg
+   ./scripts/assets.sh list images
+   ./scripts/assets.sh url images/logo.png
+   ./scripts/assets.sh delete images/old.png
+   ```
+
+2. **CLI — bundled with deploy** (uploads `assets/` together with the Lua bundle):
+   ```bash
+   HOSTING_API_SECRET=<secret> ./scripts/deploy.sh --assets-dir=assets
+   ```
+   Or via env vars in CI:
+   ```bash
+   ASSETS_DIR=assets ./scripts/deploy.sh
+   ```
+
+3. **CLI — assets only** (no Lua/React rebuild):
+   ```bash
+   HOSTING_API_SECRET=<secret> ./scripts/deploy.sh --assets-only --assets-dir=assets
+   ./scripts/deploy.sh --assets-only --assets-dir=assets --assets-prefix=images
+   ```
+
+4. **Web UI** — open the environment detail page and click the folder icon next
+   to the Cloud Storage card to browse, upload (drag & drop), and delete files.
+
+In Lua/TS code:
+
+```typescript
+const url = getAssetUrl("logo.png");          // → CDN or GCS public URL
+const heroUrl = getAssetUrl("images/hero.jpg");
+```
+
+Path safety: uploads are confined to `files/` — you cannot write into
+`deployments/`, `config/`, `react/`, or overwrite `latest.json`.
+
 ## Project Structure
 
 ```
@@ -149,3 +193,4 @@ Detailed documentation is available in the [docs](./docs/) directory:
 ## License
 
 Proprietary
+

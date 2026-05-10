@@ -2,7 +2,6 @@ node_modules
 lualib_bundle.lua
 psqt
 dist
-deploy-local.sh
 .playwright-mcp/
 .vscode/
 *.png
@@ -12,3 +11,4 @@ tlycode-settings.json
 .idea/
 .screenshots/
 src/react-bundle-content.ts
+.image-originals/

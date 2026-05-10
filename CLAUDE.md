@@ -1,15 +1,93 @@
-# CLAUDE.md
+# Project guidance for AI agents
 
-Read and follow instructions from: `docs/instructions.md`
+Read and follow instructions from: `docs/instructions.md` and `README.md`
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file is the shared source of truth for AI coding assistants in this repo —
+**Claude Code** (`CLAUDE.md`), **Gemini Code Assist** (`GEMINI.md`) and **OpenAI
+Codex** (`AGENTS.md`) all read identical content via symlinks pointing at this
+file. Edit this file; never edit the symlinks.
+
+
+## How to talk to the user (read this before answering)
+
+The user is **not a programmer or developer**. Their computer skills are
+intermediate — they can install software, navigate files, copy-paste a
+command into a terminal, follow step-by-step instructions, and read error
+messages, but they don't read source code or debug stack traces. Treat this
+as a hard constraint, not a preference:
+
+- **Reply in Czech.** Match the user's language; this user writes in Czech.
+- **Lead with what they should do, not what you did.** "Klikni na X, pak Y"
+  beats "Refaktoroval jsem foo.ts a přidal validaci do bar.ts". When you
+  must mention code, name the file in plain language ("v souboru s nastavením")
+  rather than path-in-monospace, unless the path itself is what they need
+  to act on.
+- **No source-code dumps in chat unless asked.** A single short snippet to
+  illustrate is fine; pasting full files or diffs is not. Summarise changes
+  as "co se změní pro tebe" outcomes ("homepage teď má hamburger menu na
+  mobilu"), not as a list of touched files.
+- **Avoid jargon without a one-line gloss.** "Cloud Run env var" → "nastavení
+  v hostingu, které čte aplikace za běhu". "Symlink" → "zástupce, co míří na
+  původní soubor". When the term is unavoidable, define it once on first use.
+- **Confirm before risky actions.** Anything that pushes to production,
+  deletes data, or rewrites git history needs an explicit go-ahead in plain
+  language ("nasadit teď na produkci?"), not a buried mention in a long reply.
+- **Tell, don't show, when verifying.** Instead of pasting curl output, say
+  "ověřil jsem živou stránku, obrázky se načítají správně". Show raw output
+  only when something is broken and the user needs to see the symptom.
+- **Decisions in two or three sentences.** When recommending an approach,
+  say what to do, why, and the one main tradeoff. Skip exhaustive
+  alternatives unless asked.
+- **Errors → cause + fix, no traceback.** "Build selhal protože chybí Node
+  20+. Zkus `node -v` a pokud máš starší, nainstaluj přes nvm." Not a
+  Rust-style stack trace.
+
+Mental model to keep: the user is the person who pays for outcomes, not the
+person who reviews PRs.
+
+
+## Git workflow (do this before any work)
+
+Always start a session by syncing the local `main` with the remote, then
+work on top of that. The user often makes small edits between sessions —
+typo fixes, content tweaks, env_configs adjustments — and you must not
+overwrite those.
+
+1. **Pull first**, before reading or editing files:
+
+   ```bash
+   git checkout main && git pull --ff-only origin main
+   ```
+
+   If `--ff-only` refuses (i.e. the local `main` has commits the remote
+   doesn't), stop and surface the divergence to the user in plain language
+   ("máš lokálně commity, co nejsou na GitHubu, mám je pushnout nebo zahodit?").
+   Never silently merge or rebase.
+
+2. **Commit + push** after the change is done and tested. Stick to small,
+   meaningful commits — one logical change per commit, message on the
+   "why" not the "what".
+
+   ```bash
+   git add <specific files>           # never `git add -A` blindly
+   git commit -m "<message>"
+   git push origin main
+   ```
+
+   **Push is the deploy.** GitHub Actions runs `scripts/deploy.sh` on every
+   push to `main`, and on this project that is the only path that actually
+   updates the live URL. Do not run `deploy-local.sh` — it succeeds at the
+   API level but does not flip live traffic. See "Deploy pipeline" below.
+
+3. **Branches:** this repo uses `main` for everything. Don't create a
+   feature branch unless the user explicitly asks.
 
 
 ## Project Overview
 
 TlyCode is a serverless web framework built on the TypeForge platform. It compiles TypeScript to Lua using TypeScript-to-Lua (TSTL). The compiled Lua bundle runs on a Lua JIT hosting runtime with built-in APIs for HTTP, database, file I/O, crypto, and more.
 
-**Architecture: Hybrid React** — The server (TSTL/Lua) handles routing and data. UI rendering is done by React components. The server serializes data as JSON props and generates an HTML page that loads React from CDN + an embedded app bundle.
+**Architecture: Hybrid React** — The server (TSTL/Lua) handles routing and data. UI rendering is done by React components. The server serializes data as JSON props and generates an HTML page that includes the React bundle via `frontendEntryUrl()` (the platform injects bundle URLs as Cloud Run env vars during deploy).
 
 This repository is the **template for new TlyCode projects** (`git@github.com:tlycode0-spec/tlycode-empty-app.git`).
 
@@ -25,21 +103,68 @@ npm run build        # Compile TypeScript to Lua (output: dist/bundle.lua)
 npm run dev          # Watch mode — recompiles on file changes
 
 # React app
-cd react-app && npm install   # Install React dependencies
-cd react-app && npm run build # Build React bundle (output: react-app/dist/)
-
-# After React build — embed into TSTL bundle and write hash into react.ts
-node scripts/embed-react.js
+cd react-app && npm install     # Install React dependencies
+cd react-app && npm run build   # tsc + vite build + postbuild manifest generator
+                                # Output: react-app/dist/index-[hash].js + .vite/manifest.json
 ```
+
+The React bundle is **uploaded directly to Cloud Storage by the deploy script** —
+no longer embedded into the Lua bundle. The platform injects the bundle URLs into
+Cloud Run as `REACT_BUNDLE_GCS_URL` / `REACT_BUNDLE_CDN_URL` / `REACT_BUNDLE_ENTRY`
+/ `REACT_BUNDLE_CSS` env vars; Lua reads them via `frontendEntryUrl()` and
+`frontendCssUrl()` from `getReactPageTemplate()`.
 
 There is no test framework or linter configured.
 
-### Full rebuild pipeline
+### Deploy pipeline — agents must commit + push, never deploy locally
+
+**Agents (Claude / Gemini / Codex) must always deploy by committing and
+pushing to `main`.** GitHub Actions runs `scripts/deploy.sh` and is the only
+mechanism that actually swaps the live bundle on this project. Anything else
+("local" deploy, manual API calls, etc.) **does not propagate to the live
+URL** here — the platform stores the upload but does not flip live traffic
+to it. Agents have wasted iterations debugging why a "successful" local
+deploy didn't show up in the browser; the answer is always: it never went
+live, push instead.
+
+Standard agent workflow for any change that needs to be visible:
+
 ```bash
-cd react-app && npm run build && cd ..   # 1. Build React
-# 2. Run embed script above               # 2. Embed into react-bundle-content.ts
-npm run build                              # 3. TSTL compile to Lua
+# 1. Make and verify the change locally (npm run build to type-check is fine)
+npm run build                              # TSTL — verify it compiles
+cd react-app && npm run build && cd ..     # React — verify it compiles
+
+# 2. Commit and push. CI does the actual deploy.
+git add <files>
+git commit -m "..."
+git push origin main
+
+# 3. Wait for CI, then verify on the live URL.
+gh run list --limit 1                      # confirm Deploy completed = success
+curl -s https://ctemespolujinak.cz/...     # confirm the change is live
 ```
+
+**Do not run `scripts/deploy-local.sh`.** It posts to `/api/deploy/local`
+which on this project succeeds at the API level but the new bundle does not
+become the one Cloud Run serves. The script is left in the repo for platform
+debugging by the project owner; agents should treat it as off-limits.
+
+**Do not run `scripts/deploy.sh` from your machine** unless the user
+explicitly asks. CI runs it on every push, and it has a duplicate-commit
+gate that will reject the same HEAD twice — pushing a new commit (even an
+empty one with `--allow-empty`) is the right way to retrigger.
+
+If the user wants a "redeploy without code changes," use:
+
+```bash
+git commit --allow-empty -m "chore: retrigger CI"
+git push origin main
+```
+
+CI uses `HOSTING_ENV=test` (set in `.github/workflows/deploy.yml`); on this
+project the test environment **is** the live URL `ctemespolujinak.cz`, there
+is no separate production env. Do not try to override `HOSTING_ENV` from
+your machine.
 
 
 ## Architecture
@@ -47,13 +172,16 @@ npm run build                              # 3. TSTL compile to Lua
 ### How React Rendering Works
 
 1. Route handler calls `getReactPageTemplate(title, componentName, props)` — generates full HTML page
-2. HTML loads React 18 from CDN (unpkg) and the embedded JS bundle
-3. `window.__REACT_RENDER__(componentName, props, containerId)` mounts the React component
-4. React component receives all data as props — **no client-side data fetching**
-5. Forms submit via HTTP POST (standard form submission, no SPA behavior)
-6. Navigation is server-side — no client-side routing
+2. Lua `frontendEntryUrl()` returns the JS bundle URL (CDN if configured, else GCS); `frontendCssUrl()` returns the CSS URL
+3. HTML includes `<script src="{bundle}">` and `<link rel="stylesheet" href="{css}">`
+4. `window.__REACT_RENDER__(componentName, props, containerId)` mounts the React component
+5. React component receives all data as props — **no client-side data fetching**
+6. Forms submit via HTTP POST (standard form submission, no SPA behavior)
+7. Navigation is server-side — no client-side routing
 
-Key file: `src/react.ts` — exports `getReactPageTemplate()` and `renderReactComponent()`
+Key files:
+- `src/react.ts` — exports `getReactPageTemplate()` and `renderReactComponent()` (uses `frontendEntryUrl()`/`frontendCssUrl()` runtime globals)
+- `src/global.d.ts` — declares `frontendUrl()`, `frontendEntry()`, `frontendEntryUrl()`, `frontendCss()`, `frontendCssUrl()` from the platform
 
 ### Project Structure
 
@@ -66,8 +194,7 @@ src/                               # TSTL server-side code (compiles to Lua)
 ├── utils.ts                       # Shared utilities (sessions, CSRF, helpers)
 ├── validator.ts                   # Decorator-based validation
 ├── template.ts                    # HTML template wrapper + theme detection
-├── react.ts                       # React page template generator
-├── react-bundle-content.ts        # Embedded React bundle (auto-generated, gitignored)
+├── react.ts                       # React page template generator (uses frontendEntryUrl/frontendCssUrl)
 │
 └── modules/
     ├── router.ts                  # Route definitions
@@ -113,10 +240,15 @@ Each domain module in `src/modules/app/[module]/` follows this convention:
 
 ```
 src/ → TSTL compiler → dist/bundle.lua → Lua JIT runtime (Cloud Run)
-react-app/src/ → Vite build → dist/index-[hash].js → embedded in src/react-bundle-content.ts
+react-app/src/ → Vite (lib + iife) → react-app/dist/index-[hash].js + .vite/manifest.json
+                                   → uploaded by scripts/deploy.sh to GCS files/per-deployment/react/
+                                   → Cloud Run env vars REACT_BUNDLE_*_URL / _ENTRY / _CSS
+                                   → Lua frontendEntryUrl() / frontendCssUrl()
 ```
 
-The React bundle is built as an IIFE with external React/ReactDOM (loaded from CDN at runtime). Vite config at `react-app/vite.config.ts`.
+The React bundle is built as an IIFE with React bundled in (one self-contained file).
+A small `react-app/postbuild.js` writes `dist/.vite/manifest.json` after Vite build,
+which the deploy script reads to know the entry filename + CSS filename.
 
 ### Request/Response Model
 
@@ -147,7 +279,9 @@ Current routes:
 `src/global.d.ts` declares all functions provided by the Lua hosting runtime. These are globally available (no imports needed) and cover:
 
 - **File I/O**: `fileRead`, `fileWrite`, `fileDelete`, `fileCopy`, `fileMove`, `dirList`
-- **Cloud Storage**: `storageUpload`, `storageUploadBytes`, `storageDownload`, `storageDelete`, `storageGetUrl`, `storageGetSignedUrl`, `storageList`, `storageExists`
+- **Cloud Storage** (in Lua at runtime): `storageUpload`, `storageUploadBytes`, `storageDownload`, `storageDelete`, `storageGetUrl`, `storageGetSignedUrl`, `storageList`, `storageExists`
+- **Asset management from CLI/agent**: `./scripts/assets.sh {upload|upload-dir|list|delete|url}` — wrapper around the hosting `/api/storage/*` endpoints. `upload-dir` is standalone (loops `find` + per-file POST); does **not** depend on `deploy.sh --assets-only` / `--assets-dir`, which the current `deploy.sh` does not implement. Typical use: `HOSTING_ENV=test ./scripts/assets.sh upload-dir assets/images images`. See README.md for examples.
+- **Frontend bundle**: `frontendUrl(provider?)`, `frontendEntry()`, `frontendEntryUrl(provider?)`, `frontendCss()`, `frontendCssUrl(provider?)` — `provider` is optional `"cdn"` or `"gcs"`; default prefers CDN when configured
 - **HTTP Client**: `httpGet`, `httpPost`, `httpRequest`
 - **Database**: `sqlQuery<T>(query, params)`
 - **Cache**: `appCacheGet`, `appCacheSet`, `appCacheRemove`, `clearMicroCache`
@@ -189,6 +323,36 @@ Available decorators: `@Required()`, `@MinLength(n)`, `@MaxLength(n)`, `@Range(m
 ### Configuration
 
 `src/config.ts` returns the `Config` object controlling: MicroCache (in-memory TTL cache), PostgreSQL connection, Redis connection, **session settings**, upload temp directory, and max upload file size.
+
+### Asset uploads (`scripts/assets.sh`)
+
+Static files (images, fonts, downloads) live on Cloud Storage under `{project}/{env}/files/<path>` and are reachable from the app via `getAssetUrl(path)` from `src/utils.ts`. Use `scripts/assets.sh` to push them — it's a thin wrapper around the hosting `/api/storage/*` endpoints and is independent of `deploy.sh` (i.e. you do **not** need to re-deploy the Lua bundle just to refresh an image).
+
+**Required env**: `HOSTING_API_SECRET`. **Optional**: `HOSTING_ENV` (default `production`), `HOSTING_API_URL` (default `http://localhost:3005/hosting`).
+
+```bash
+# Single file. Remote path defaults to basename — pass an explicit one to keep folder structure.
+HOSTING_ENV=test ./scripts/assets.sh upload assets/images/logo.png images/logo.png
+
+# Whole directory, recursive. Preserves the tree under <prefix>/.
+HOSTING_ENV=test ./scripts/assets.sh upload-dir assets/images images
+
+# Inspect / clean up
+HOSTING_ENV=test ./scripts/assets.sh list images/products
+HOSTING_ENV=test ./scripts/assets.sh url  images/logo.png
+HOSTING_ENV=test ./scripts/assets.sh delete images/old.png
+```
+
+**The remote path must equal the string passed to `getAssetUrl()`.** `getAssetUrl("images/products/foo.png")` → `<cdn>/<project>/<env>/files/images/products/foo.png`, so the upload's `<remote_path>` (or the combined `<prefix>/<filename>` from `upload-dir`) must be `images/products/foo.png`. No leading slash.
+
+**Conventions for this repo**:
+- Local source of truth lives under `assets/images/`; mirror that tree on the remote with `upload-dir assets/images images`.
+- Default to `HOSTING_ENV=test` while iterating — only target `production` after the user explicitly confirms.
+
+**Failure modes worth knowing**:
+- `curl exit 56` / "Recv failure: Operation timed out" — transient network blip on larger PNGs. Retry just the failed file with `assets.sh upload`, not the whole batch.
+- HTTP 403/401 — wrong or missing `HOSTING_API_SECRET`.
+- Image 404s after upload — almost always env mismatch (uploaded to `test`, app deployed to `production`) or path mismatch (leading slash, wrong casing). Compare the URL the browser requests against the path you uploaded.
 
 
 ## Key Conventions
@@ -279,7 +443,10 @@ To add a new domain module (e.g., `invoices`):
 
 7. **Register components** in `react-app/src/registry.ts`.
 
-8. **Rebuild React** and embed into TSTL bundle.
+8. **Commit + push** (`git push origin main`). CI deploys via
+   `scripts/deploy.sh` automatically. See "Deploy pipeline" above — never
+   use `deploy-local.sh`, it does not propagate to the live URL on this
+   project.
 
 
 ## Adding a New React Component
@@ -294,7 +461,8 @@ To add a new domain module (e.g., `invoices`):
    ```typescript
    response.content = getReactPageTemplate('Title', "NewPage", { ...props });
    ```
-4. Rebuild: `cd react-app && npm run build`, then embed, then `npm run build`
+4. Commit + push to `main`. CI builds both bundles and deploys.
+   Never run `deploy-local.sh` — see "Deploy pipeline" above.
 
 
 ## TSTL Limitations
@@ -383,3 +551,5 @@ sqlQuery<T>(
     [params]
 );
 ```
+
+.

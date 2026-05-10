@@ -1,7 +1,10 @@
 {
+  "agent_cli": "claude",
   "agent_language": "",
+  "agent_model_opencode": "lmstudio/google/gemma-4-e4b",
   "agent_permission_mode": "auto",
   "append_prompt": "",
+  "gh_user": "Filipeus-san",
   "initial_prompt": "",
   "ticket_done_prompt": ""
 }

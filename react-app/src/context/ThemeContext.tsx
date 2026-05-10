@@ -10,7 +10,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => {},
 });
 
@@ -18,39 +18,44 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+const TAKTIK_ORANGE = '#E94E1B';
+const TAKTIK_ORANGE_DARK = '#C13F12';
+const TAKTIK_GREEN = '#7AB800';
+const TAKTIK_GREEN_DARK = '#5E8F00';
+
 const getDesignTokens = (mode: Theme) => ({
   palette: {
     mode,
     primary: {
-      main: mode === 'dark' ? '#7c5cfc' : '#6d4aed',
-      light: '#a78bfa',
-      dark: '#5b3fd9',
+      main: TAKTIK_ORANGE,
+      dark: TAKTIK_ORANGE_DARK,
+      contrastText: '#ffffff',
     },
     secondary: {
-      main: '#06d6a0',
-      light: '#39e5b6',
-      dark: '#05b88a',
+      main: TAKTIK_GREEN,
+      dark: TAKTIK_GREEN_DARK,
+      contrastText: '#ffffff',
     },
     background: {
-      default: mode === 'dark' ? '#0f0f17' : '#f8f9fc',
-      paper: mode === 'dark' ? '#1a1a2e' : '#ffffff',
+      default: mode === 'dark' ? '#1a1a1a' : '#ffffff',
+      paper: mode === 'dark' ? '#262626' : '#ffffff',
     },
     text: {
-      primary: mode === 'dark' ? '#e8e8f0' : '#1a1a2e',
-      secondary: mode === 'dark' ? '#9595ad' : '#6b7280',
+      primary: mode === 'dark' ? '#f0f0f0' : '#222222',
+      secondary: mode === 'dark' ? '#bdbdbd' : '#555555',
     },
-    divider: mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)',
+    divider: mode === 'dark' ? 'rgba(255,255,255,0.08)' : '#e6e6e6',
   },
   typography: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     h1: { fontWeight: 800, lineHeight: 1.1 },
-    h2: { fontWeight: 800 },
-    h3: { fontWeight: 700 },
-    h4: { fontWeight: 700 },
+    h2: { fontWeight: 800, fontSize: '1.6rem' },
+    h3: { fontWeight: 700, fontSize: '1.4rem' },
+    h4: { fontWeight: 700, fontSize: '1.15rem' },
     button: { fontWeight: 700, textTransform: 'none' as const },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 4,
   },
   components: {
     MuiCssBaseline: {
@@ -58,25 +63,21 @@ const getDesignTokens = (mode: Theme) => ({
         body: {
           transition: 'background-color 0.3s ease, color 0.3s ease',
         },
-        '::selection': {
-          background: 'rgba(124,92,252,0.4)',
-        },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 50,
-          padding: '0.75rem 2rem',
-          fontSize: '1rem',
+          borderRadius: 4,
+          padding: '0.6rem 1.4rem',
+          fontSize: '0.95rem',
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 20,
-          border: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)'}`,
+          borderRadius: 4,
           backgroundImage: 'none',
         },
       },
@@ -94,9 +95,9 @@ const getDesignTokens = (mode: Theme) => ({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('tf-theme') as Theme) || 'dark';
+      return (localStorage.getItem('tf-theme') as Theme) || 'light';
     }
-    return 'dark';
+    return 'light';
   });
 
   const toggleTheme = useCallback(() => {

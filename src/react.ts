@@ -1,9 +1,8 @@
-import { REACT_JS, REACT_CSS } from "./react-bundle-content";
-import { getAssetUrl } from "./utils";
-
-// =============================================================================
-// Types
-// =============================================================================
+// React bundle URLs are provided at runtime by the platform via:
+//   frontendUrl(), frontendEntryUrl(), frontendCssUrl()
+// The hosting service uploads react-app/dist/ contents per-deployment and injects
+// REACT_BUNDLE_GCS_URL / REACT_BUNDLE_CDN_URL / REACT_BUNDLE_ENTRY / REACT_BUNDLE_CSS
+// env vars into the Cloud Run service.
 
 interface ReactComponentOptions {
     containerId?: string;
@@ -16,6 +15,13 @@ interface SeoMeta {
     canonicalUrl?: string;
     ogType?: string;
     ogImage?: string;
+    keywords?: string;
+    siteName?: string;
+    locale?: string;
+    twitterCard?: string;
+    author?: string;
+    noindex?: boolean;
+    jsonLd?: string[];
     article?: {
         publishedTime?: string;
         author?: string;
@@ -29,62 +35,24 @@ interface ReactPageOptions extends ReactComponentOptions {
 }
 
 // =============================================================================
-// GCS Storage for React bundle
-// =============================================================================
-
-// Bundle hash is replaced by the embed script at build time
-const bundleHash = "ce5a9ecc1290f2ce60056e044c65c318";
-const bundleStoragePath = "react-assets/react-bundle-" + bundleHash + ".js";
-const cssStoragePath = "react-assets/react-bundle-" + bundleHash + ".css";
-
-let bundleUploaded = false;
-let cachedBundleUrl = "";
-let cachedCssUrl = "";
-
-/**
- * Ensure React bundle is uploaded to GCS.
- * Called lazily on first request that needs the bundle URL.
- */
-function ensureBundleUploaded(): void {
-    if (bundleUploaded) return;
-
-    if (!storageExists(bundleStoragePath)) {
-        storageUpload(bundleStoragePath, REACT_JS, "text/javascript");
-    }
-
-    const cssContent = REACT_CSS as string;
-    if (cssContent !== "" && !storageExists(cssStoragePath)) {
-        storageUpload(cssStoragePath, cssContent, "text/css");
-    }
-
-    cachedBundleUrl = getAssetUrl(bundleStoragePath);
-    cachedCssUrl = getAssetUrl(cssStoragePath);
-    bundleUploaded = true;
-}
-
-// Keep public export for backwards compatibility / explicit calls
-export function uploadReactBundle(): void {
-    ensureBundleUploaded();
-}
-
-// =============================================================================
 // Helpers
 // =============================================================================
 
 function safePropsJson(props: Record<string, any>): string {
     const json = jsonEncode(props);
-    // Escape </ to prevent breaking out of <script> tags
     return stringReplace(json, "</", "<\\/");
 }
 
 function getBundleUrl(): string {
-    ensureBundleUploaded();
-    return cachedBundleUrl;
+    if (typeof frontendEntryUrl !== 'function') return "";
+    const url = frontendEntryUrl();
+    return url !== null ? url : "";
 }
 
 function getCssUrl(): string {
-    ensureBundleUploaded();
-    return cachedCssUrl;
+    if (typeof frontendCssUrl !== 'function') return "";
+    const url = frontendCssUrl();
+    return url !== null ? url : "";
 }
 
 // =============================================================================
@@ -92,20 +60,19 @@ function getCssUrl(): string {
 // =============================================================================
 
 /**
- * Returns <script> tags for React 18 (CDN) + the app React bundle.
+ * Returns <script> tag for the React app bundle.
  * Include once per page, before any renderReactComponent output.
  */
 export function reactScripts(): string {
-    return `<script src="${getBundleUrl()}" onload="document.dispatchEvent(new CustomEvent('react-bundle-loaded'))"></script>`;
+    const bundleUrl = getBundleUrl();
+    if (bundleUrl === "") return "";
+    return `<script src="${bundleUrl}" onload="document.dispatchEvent(new CustomEvent('react-bundle-loaded'))"></script>`;
 }
 
 /**
  * Renders a React component mount point with serialized props.
  * Must be used inside a page that loads the React bundle
  * (use getReactPageTemplate or include reactScripts() in the page).
- *
- * Example:
- *   const html = renderReactComponent("ProductGallery", { images: [...] });
  */
 export function renderReactComponent(
     componentName: string,
@@ -145,10 +112,6 @@ export function renderReactComponent(
 
 /**
  * Full HTML page template for React-only pages.
- * Alternative to getHtmlTemplate — includes React scripts and mounts a single component.
- *
- * Example:
- *   response.content = getReactPageTemplate("Dashboard", "AdminDashboard", { user: "Jan" });
  */
 export function getReactPageTemplate(
     title: string,
@@ -176,12 +139,24 @@ export function getReactPageTemplate(
 
     const propsJson = safePropsJson(props);
 
-    // Build SEO meta tags
     let seoTags = '';
+    let jsonLdBlocks = '';
     if (seo !== null) {
         if (seo.description !== undefined && seo.description !== '') {
             seoTags = seoTags + `\n    <meta name="description" content="${seo.description}">`;
             seoTags = seoTags + `\n    <meta property="og:description" content="${seo.description}">`;
+            seoTags = seoTags + `\n    <meta name="twitter:description" content="${seo.description}">`;
+        }
+        if (seo.keywords !== undefined && seo.keywords !== '') {
+            seoTags = seoTags + `\n    <meta name="keywords" content="${seo.keywords}">`;
+        }
+        if (seo.author !== undefined && seo.author !== '') {
+            seoTags = seoTags + `\n    <meta name="author" content="${seo.author}">`;
+        }
+        if (seo.noindex === true) {
+            seoTags = seoTags + `\n    <meta name="robots" content="noindex,nofollow">`;
+        } else {
+            seoTags = seoTags + `\n    <meta name="robots" content="index,follow,max-image-preview:large">`;
         }
         if (seo.canonicalUrl !== undefined && seo.canonicalUrl !== '') {
             seoTags = seoTags + `\n    <link rel="canonical" href="${seo.canonicalUrl}">`;
@@ -190,9 +165,20 @@ export function getReactPageTemplate(
         const ogType = (seo.ogType !== undefined && seo.ogType !== '') ? seo.ogType : 'website';
         seoTags = seoTags + `\n    <meta property="og:type" content="${ogType}">`;
         seoTags = seoTags + `\n    <meta property="og:title" content="${title}">`;
+        seoTags = seoTags + `\n    <meta name="twitter:title" content="${title}">`;
+        const siteName = (seo.siteName !== undefined && seo.siteName !== '') ? seo.siteName : '';
+        if (siteName !== '') {
+            seoTags = seoTags + `\n    <meta property="og:site_name" content="${siteName}">`;
+        }
+        const locale = (seo.locale !== undefined && seo.locale !== '') ? seo.locale : 'cs_CZ';
+        seoTags = seoTags + `\n    <meta property="og:locale" content="${locale}">`;
         if (seo.ogImage !== undefined && seo.ogImage !== '') {
             seoTags = seoTags + `\n    <meta property="og:image" content="${seo.ogImage}">`;
+            seoTags = seoTags + `\n    <meta property="og:image:alt" content="${title}">`;
+            seoTags = seoTags + `\n    <meta name="twitter:image" content="${seo.ogImage}">`;
         }
+        const twitterCard = (seo.twitterCard !== undefined && seo.twitterCard !== '') ? seo.twitterCard : 'summary_large_image';
+        seoTags = seoTags + `\n    <meta name="twitter:card" content="${twitterCard}">`;
         if (seo.article !== undefined) {
             if (seo.article.publishedTime !== undefined && seo.article.publishedTime !== '') {
                 seoTags = seoTags + `\n    <meta property="article:published_time" content="${seo.article.publishedTime}">`;
@@ -204,34 +190,49 @@ export function getReactPageTemplate(
                 seoTags = seoTags + `\n    <meta property="article:section" content="${seo.article.section}">`;
             }
         }
+        if (seo.jsonLd !== undefined) {
+            for (const block of seo.jsonLd) {
+                jsonLdBlocks = jsonLdBlocks + "\n    " + block;
+            }
+        }
     }
 
+    const cssUrl = getCssUrl();
+    const cssLink = cssUrl !== "" ? `<link href="${cssUrl}" rel="stylesheet">` : '';
+    const bundleUrl = getBundleUrl();
+    const bundleScript = bundleUrl !== "" ? `<script src="${bundleUrl}"></script>` : '';
+
     return `<!DOCTYPE html>
-<html lang="cs" data-tf-theme="dark">
+<html lang="cs" data-tf-theme="light">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${title}</title>${seoTags}
-    <link rel="icon" href="data:;base64,=">
+    <title>${title}</title>${seoTags}${jsonLdBlocks}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='90'>📖</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
     <script>
         (function(){
-            var t=localStorage.getItem('tf-theme')||'dark';
+            var t=localStorage.getItem('tf-theme')||'light';
             document.documentElement.setAttribute('data-tf-theme',t);
         })();
     </script>
     <style>
         *,*::before,*::after{box-sizing:border-box}
+        html{scroll-behavior:smooth}
+        @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
         html,body{margin:0;padding:0;max-width:100vw;overflow-x:hidden}
-        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;transition:background-color .3s,color .3s}
-        [data-tf-theme="dark"] body{background:#0f0f17;color:#e8e8f0}
-        [data-tf-theme="light"] body{background:#f8f9fc;color:#1a1a2e}
+        body{font-family:'Open Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;transition:background-color .3s,color .3s}
+        [data-tf-theme="dark"] body{background:#1a1a1a;color:#f0f0f0}
+        [data-tf-theme="light"] body{background:#ffffff;color:#222222}
     </style>
-    <link href="${getCssUrl()}" rel="stylesheet">
+    ${cssLink}
     ${headExtra}
 </head>
 <body>
     <div id="${containerId}"${classAttr}${styleAttr}></div>
-    <script src="${getBundleUrl()}"></script>
+    ${bundleScript}
     <script>window.__REACT_RENDER__("${componentName}",${propsJson},"${containerId}");</script>
 </body>
 </html>`;

@@ -556,3 +556,26 @@ declare function storageList(prefix?: string): string[];
  * @noSelf
  */
 declare function storageExists(path: string): boolean;
+
+// --- Frontend bundle (React) ---
+
+/**
+ * Returns base URL of the deployed frontend bundle.
+ * @param provider - "cdn" forces Cloudflare URL, "gcs" forces direct GCS URL.
+ *                   Omit to prefer CDN when configured, otherwise GCS.
+ * @returns Base URL or null when no frontend is deployed (or chosen provider unavailable).
+ * @noSelf
+ */
+declare function frontendUrl(provider?: "cdn" | "gcs"): string | null;
+
+/** Returns the entry filename of the deployed frontend bundle (e.g. "index-Abc.js"). @noSelf */
+declare function frontendEntry(): string | null;
+
+/** Returns the full URL of the frontend entry script (frontendUrl() + "/" + frontendEntry()). @noSelf */
+declare function frontendEntryUrl(provider?: "cdn" | "gcs"): string | null;
+
+/** Returns the CSS filename of the deployed frontend bundle, or null. @noSelf */
+declare function frontendCss(): string | null;
+
+/** Returns the full URL of the frontend CSS file (frontendUrl() + "/" + frontendCss()). @noSelf */
+declare function frontendCssUrl(provider?: "cdn" | "gcs"): string | null;
