@@ -5,7 +5,8 @@ dist
 .playwright-mcp/
 .vscode/
 *.png
-.claude/
+.claude/*
+!.claude/skills/
 .env
 tlycode-settings.json
 .idea/
