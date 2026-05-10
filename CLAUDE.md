@@ -83,7 +83,26 @@ overwrite those.
    feature branch unless the user explicitly asks.
 
 
-## Project Overview
+## tlycode MCP authentication
+
+Many actions in this repo (deploys, hosting config, env vars, storage,
+domains, Cloud Run logs, …) go through the `mcp__tlycode__*` MCP tools.
+These tools only work when the user has an active session with the
+tlycode hosting console.
+
+**If the tlycode MCP isn't authenticated** — i.e. the `mcp__tlycode__*`
+tools aren't listed as available, or a call returns an auth/permission
+error like `unauthenticated`, `401`, `403`, "session expired", "no project
+selected", etc. — **stop and tell the user to re-login**, in Czech and in
+plain language:
+
+> Nejsi přihlášený do hostingu (tlycode MCP). Otevři v menu **Hosting
+> projekty**, vyber tam projekt a přihlas se znovu. Pak mi dej vědět a
+> já to zkusím znovu.
+
+Do not try to work around the missing auth (no manual `curl`s to the
+hosting API, no asking the user for tokens). Just surface the message
+above and wait.
 
 TlyCode is a serverless web framework built on the TypeForge platform. It compiles TypeScript to Lua using TypeScript-to-Lua (TSTL). The compiled Lua bundle runs on a Lua JIT hosting runtime with built-in APIs for HTTP, database, file I/O, crypto, and more.
 
